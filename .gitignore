@@ -1,3 +1,5 @@
 .vscode
 client
 server
+tracker
+tracker_info.txt

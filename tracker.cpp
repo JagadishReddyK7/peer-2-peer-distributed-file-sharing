@@ -20,9 +20,17 @@ typedef struct {
     int client_fd;
 } User;
 
+typedef struct {
+    string group_id;
+    string owner_id;
+    map<string, User> users_present;
+    map<string, string> request_queue;
+} group;
+
 unordered_map<string, User> user_list;
 unordered_map<string, User> loggedin_users;
 unordered_map<int, string> client_info;
+unordered_map<string, group> group_info;
 
 void list_users() {
     for(auto user=user_list.begin();user!=user_list.end();user++) {
@@ -81,6 +89,8 @@ void logout_user(string& ack, int client_fd) {
     string user_id = client_info[client_fd];
     client_info.erase(client_fd);
     loggedin_users.erase(user_id);
+    ack = "user "+user_id+" logged out successfully";
+    cout<<ack<<endl;
 }
 
 vector<string> tokenize_message(string &part) {
@@ -102,11 +112,68 @@ int execute_command(string &message, string& ack, int client_fd) {
     else if(command[0]=="list_users") {
         list_users();
     }
-    else if(command[0]=="login_user") {
+    else if(command[0]=="login") {
         login_user(command, ack, client_fd);
     }
     else if(command[0]=="logout") {
         logout_user(ack, client_fd);
+    }
+    else if(command[0]=="create_group") {
+        string user_id = client_info[client_fd];
+        string group_id = command[1];
+        group grp;
+        grp.group_id = group_id;
+        grp.owner_id = user_id;
+        grp.users_present[user_id] = user_list[user_id];
+        group_info[group_id] = grp;
+        ack = "Group "+group_id+" created successfully";
+        cout<<ack<<endl;
+    }
+    else if(command[0]=="join_group") {
+        string group_id = command[1];
+        string user_id = client_info[client_fd];
+        group_info[group_id].request_queue[user_id]=user_id;
+        ack="Request sent to owner to join the group";
+        cout<<ack<<endl;
+    }
+    else if(command[0]=="list_groups") {
+        ack="";
+        for(auto it=group_info.begin();it!=group_info.end();it++) {
+            cout<<it->first<<endl;
+            ack+=it->first+" : ";
+        }
+    }
+    else if(command[0]=="list_requests") {
+        string group_id = command[1];
+        ack="";
+        group grp = group_info[group_id];
+        for(auto it=grp.request_queue.begin(); it!=grp.request_queue.end();it++) {
+            cout<<it->first<<endl;
+            ack+=it->first+" : ";
+        }
+    }
+    else if(command[0]=="accept_request") {
+        string group_id = command[1];
+        string user_id = command[2];
+        if(group_info[group_id].request_queue.count(user_id)==0) {
+            ack="User "+user_id+" did not request for the group";
+            cout<<ack<<endl;
+        }
+        else {
+            group_info[group_id].users_present[user_id] = user_list[user_id];
+            group_info[group_id].request_queue.erase(user_id);
+            ack="User "+user_id+" joined group successfully";
+            cout<<ack<<endl;
+        }
+    }
+    else if(command[0]=="leave_group") {
+        string user_id = client_info[client_fd];
+        string group_id = command[1];
+        if(group_info[group_id].users_present.count(user_id)!=0) {
+            group_info[group_id].users_present.erase(user_id);
+            ack = "User "+user_id+" left group "+group_id+" successfully";
+            cout<<ack<<endl;
+        }
     }
     else {
         cout<<"Invalid command"<<endl;
