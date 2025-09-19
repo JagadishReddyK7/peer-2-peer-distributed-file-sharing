@@ -55,7 +55,7 @@ int create_user(vector<string> &command, string &ack, int client_fd) {
 }
 
 void login_user(vector<string> &command, string& ack, int client_fd) {
-    if(client_info.find(client_fd)!=0) {
+    if(client_info.count(client_fd)!=0) {
         ack="A user is already logged in this client";
         cout<<ack<<endl;
         return;
@@ -68,6 +68,12 @@ void login_user(vector<string> &command, string& ack, int client_fd) {
         }
         else {
             User known_user = user_list[user_id];
+            string password = command[2];
+            if(known_user.password!=password) {
+                ack="Inavlid username/password";
+                cout<<ack<<endl;
+                return;
+            }
             known_user.client_fd = client_fd;
             loggedin_users.insert({user_id, known_user});
             client_info.insert({client_fd, user_id});
@@ -82,7 +88,7 @@ void login_user(vector<string> &command, string& ack, int client_fd) {
 }
 
 void logout_user(string& ack, int client_fd) {
-    if(client_info.find(client_fd)==0) {
+    if(client_info.count(client_fd)==0) {
         ack="No user logged in currently";
         return;
     }
@@ -197,7 +203,7 @@ void* handle_client(void* arg) {
         buffer[bytes_received]='\0';
         string message = string(buffer);
         string check = message.substr(0,3);
-        if(check!="syn") {
+        if(tracker_socket!=0 && check!="syn") {
             string sync_message = "syn"+message;
             char sync_buffer[sync_message.length()+1];
             strcpy(sync_buffer, sync_message.c_str());
@@ -206,9 +212,10 @@ void* handle_client(void* arg) {
         else {
             message = message.substr(3);
         }
+        int client_socket_2 = atoi(message.substr(0,5).c_str());
         string ack="default";
-        execute_command(message, ack, client_socket);
-        cout<<"client #"<<client_socket<<":"<<message<<endl;
+        execute_command(message, ack, client_socket_2);
+        cout<<"client #"<<client_socket_2<<":"<<message<<endl;
         send(client_socket, ack.c_str(), strlen(ack.c_str()), 0);
     }
     close(client_socket);
@@ -217,6 +224,7 @@ void* handle_client(void* arg) {
 
 int main(int argc, char* argv[]) {
     int portno=atoi(argv[1]);
+    int tracker_no = atoi(argv[2]);
     int tracker_portno=portno+1;
 
     int server_socket=socket(AF_INET, SOCK_STREAM, 0);
@@ -225,15 +233,18 @@ int main(int argc, char* argv[]) {
     server_address.sin_family=AF_INET;
     server_address.sin_addr.s_addr=INADDR_ANY;
     server_address.sin_port=htons(portno);
+    int tracker_socket=0;
+    if(tracker_no==0) {
+        tracker_socket=socket(AF_INET, SOCK_STREAM, 0);
 
-    int tracker_socket=socket(AF_INET, SOCK_STREAM, 0);
+        sockaddr_in tracker_address;
+        tracker_address.sin_family=AF_INET;
+        tracker_address.sin_addr.s_addr=INADDR_ANY;
+        tracker_address.sin_port=htons(tracker_portno);
 
-    sockaddr_in tracker_address;
-    tracker_address.sin_family=AF_INET;
-    tracker_address.sin_addr.s_addr=INADDR_ANY;
-    tracker_address.sin_port=htons(tracker_portno);
-
-    connect(tracker_socket, (struct sockaddr*)&tracker_address, sizeof(tracker_address));
+        connect(tracker_socket, (struct sockaddr*)&tracker_address, sizeof(tracker_address));
+    }
+    
 
     bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address));
     listen(server_socket, 5);

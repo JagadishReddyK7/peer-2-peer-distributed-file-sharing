@@ -23,13 +23,13 @@ In this interim submission, I have implemented the following requirements:
 
 ### commands for compilation and execution:
 
-    $ g++ tracker.cpp -o tracker
-    $ g++ client.cpp -o client
+    $ g++ tracker/tracker.cpp -o tracker
+    $ g++ client/client.cpp -o client
     
-    $ ./tracker 8080
-    $ ./tracker 8081
+    $ ./tracker 8080 0
+    $ ./tracker 8081 1
     
-    $ ./client 8080 8081
+    $ ./client ./tracker_info.txt
 
 ### Note:
 - I am not giving the tracker_info.txt file that contains the addresses of the two trackers as input as of now. 
