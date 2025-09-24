@@ -29,7 +29,7 @@ int request_connection(int portno, int& client_socket, sockaddr_in& server_addre
             perror("getsockname failed");
         } else {
             client_portno  = ntohs(local_address.sin_port);
-            cout<<portno<<endl;
+            // cout<<client_portno<<endl;
         }
         return 0;
     }
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
         if(msg=="exit" || cin.eof()) break;
         if(msg.empty()) continue;
         const char* message=msg.c_str();
-        cout<<message<<endl;
+        // cout<<message<<endl;
         int bytes_sent = send(client_socket, message, strlen(message), MSG_NOSIGNAL);
         int bytes_recieved=recv(client_socket, buffer, sizeof(buffer), 0);
         if(bytes_recieved<=0) {

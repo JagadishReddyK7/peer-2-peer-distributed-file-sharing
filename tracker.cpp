@@ -213,9 +213,10 @@ void* handle_client(void* arg) {
             message = message.substr(3);
         }
         int client_socket_2 = atoi(message.substr(0,5).c_str());
-        string ack="default";
+        message = message.substr(5);
+        string ack="Invalid command";
         execute_command(message, ack, client_socket_2);
-        cout<<"client #"<<client_socket_2<<":"<<message<<endl;
+        cout<<"client on portno "<<client_socket_2<<": "<<message<<endl;
         send(client_socket, ack.c_str(), strlen(ack.c_str()), 0);
     }
     close(client_socket);
